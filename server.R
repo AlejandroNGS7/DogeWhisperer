@@ -12,7 +12,7 @@ server <- function(input, output, session) {
             filter(date > input$FromDateTime & date < input$TillDateTime) 
         
         if (abs(as.numeric(as.POSIXct(input$FromDateTime) - as.POSIXct(input$TillDateTime))) > 6L |
-            abs(as.numeric(as.Date("2021-06-23 00:00:00") - as.Date("2021-06-23 03:00:00"))) > 1){
+            abs(as.numeric(as.Date(input$FromDateTime) - as.Date(input$TillDateTime))) >= 1L){
             
             shinyalert("Advertencia", "¡Se han de seleccionar intervalos inferiores a seis horas!", type = "warning")
             newCrypto <- newCrypto[0,]
