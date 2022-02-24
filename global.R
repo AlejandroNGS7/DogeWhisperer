@@ -47,7 +47,7 @@ library(keras)
 # Establecer un tema común para los gráficos.
 theme_set(theme_light() + theme(text = element_text(size = 16, family = "serif")))
 
-# Creación de un tema propio para la Dashboard (librería fresh)
+# Creación de un tema propio para la Dashboard (paquete fresh).
 mytheme <- create_theme(
   
   adminlte_color(
@@ -107,6 +107,8 @@ bitcoin   <- fread("data/BTC.csv")
 
 
 # Marcos de datos con pocos días para hacer testeos rápidos. 
+# Se establece conexión con la carpeta Drive de nuestro proyecto.
+# Hay que dar permisos a la API desde nuestra cuenta de correo de la Universidad. 
 # cardano   <- loadDrive("1rXjxW-RcpOpFFMxXd6tSgydAztyAQVNq")
 # solana    <- loadDrive("16ohfVGLh1RGV_K8mRYyfqrSSqzQC3XOz")
 # binance   <- loadDrive("13uDzLSxW_ToRjHapUev0t-RYvVdysIN9")
@@ -144,7 +146,7 @@ names(bitcoin) <- c("unix", "date", "symbol", "open", "high",
 crypto <- rbind(solana, cardano, binance, polkadot, ethereum, 
                 chainlink, litecoin, uniswap, ripple, bitcoin) %>% dplyr::select(-unix)
 
-# Lista de los nombres de los modelos a seleccionar
+# Lista de los nombres de los modelos de regresión a seleccionar. 
 models <- list("Regresión Lineal Binance"   = "models/modeloBinance.rds", 
                "Regresión Lineal Ripple"    = "models/modeloRipple.rds",
                "Regresión Lineal Bitcoin"   = "models/modeloBitcoin.rds",
@@ -156,13 +158,13 @@ models <- list("Regresión Lineal Binance"   = "models/modeloBinance.rds",
                "Regresión Lineal Solana"    = "models/modeloSolana.rds",
                "Regresión Lineal Uniswap"   = "models/modeloUniswap.rds")
 
-# Lista de los nombres de los modelos Keras a seleccionar
+# Lista de los nombres de los modelos LSTM a seleccionar. 
 modelsKeras <- list("LSTM Solana"   = "models/LSTMSolana.h5",
                     "LSTM Cardano"  = "models/LSTMCardano.h5",
                     "LSTM Ethereum" = "models/LSTMEthereum.h5",
                     "LSTM Bitcoin"  = "models/LSTMBitcoin.h5")
 
-# Lista de las variables a seleccionar. 
+# Lista de las variables del marco de datos a seleccionar. 
 varquant <- list("Valor de Apertura" = "open",
                  "Valor Máximo" = "high",
                  "Valor Mínimo" = "low",
@@ -173,3 +175,5 @@ varquant <- list("Valor de Apertura" = "open",
 
 # Salto temporal para los modelos LSTM.
 datalags <- 3
+
+

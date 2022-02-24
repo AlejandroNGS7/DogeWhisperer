@@ -5,6 +5,7 @@ ui <- dashboardPage(
     
     # ----- Encabezado de la Dashboard -----  
     dashboardHeader(title =  h3(strong("The Doge Whisperer"), align = "center"),
+                    # Aquí se añade el logo de la aplicación. 
                     tags$li(a(img(src = "logocelta3.png",
                                   title = "Whisperer", height = "40px"), 
                               style = "padding-top:5px; padding-bottom:5px;"),
@@ -36,8 +37,6 @@ ui <- dashboardPage(
                              menuSubItem("Modelo Seleccionado", tabName = "modelID"),
                              menuSubItem("Predicción", tabName = "predictionID"),
                              menuSubItem("Evaluación", tabName = "EvaluateID")),
-                    
-                    # menuItem("Evaluación", tabName = "EvaluateID", icon = icon("screenshot", lib = "glyphicon")),
                     
                     menuItem("Aprendizaje Profundo", tabName = "DeepID", icon = icon("cog", lib = "glyphicon"),
                              menuSubItem("LSTM Seleccionada", tabName = "kerasMID"),
@@ -74,6 +73,7 @@ ui <- dashboardPage(
     # ----- Cuerpo del Dashboard ----- 
     dashboardBody(
         
+        # Se añade el tema que se ha creado en fresh para la Dashboard. 
         use_theme(mytheme),
         
         # Pestañas: se pone tabItems para ligar cada elemento a los ítems del menú creado. 
@@ -82,10 +82,10 @@ ui <- dashboardPage(
             # -----  Primera pestaña -----
             tabItem(tabName = "dataTableID",
                     
+                    # Está en desuso, pero aquí se ponen las alertas shiny que más adelante se añaden en el servidor. 
                     useShinyalert(),
                     
                     fluidRow(
-                        
                         
                         # Entrada para el límite inferior de la fecha. 
                         column(4, textInput("FromDateTime", "Desde:", value = "2021-06-23 00:00:00")), 
@@ -280,7 +280,7 @@ ui <- dashboardPage(
                         
                     ),
                     
-                    
+                    # Rseumen del modelo que incluye sus principales parámetros. 
                     fluidRow(column(12, verbatimTextOutput("modelSummary")))
                     
             ),
@@ -309,19 +309,23 @@ ui <- dashboardPage(
                     
                     fluidRow(
                         
+                        # Caja que recoge el valor del coeficiente de determinación. 
+                        valueBoxOutput(width = 3, outputId = "R2CaretID"),
                         
-                        valueBoxOutput(width = 3, outputId = "R2CaretID"), 
-                        
+                        # Caja que recoge el valor del coeficiente de determinación con factor de corrección. 
                         valueBoxOutput(width = 3, outputId = "BR2CaretID"),
                         
+                        # Caja que recoge el valor del error absoluto medio. 
                         valueBoxOutput(width = 3, outputId = "MAECaretID"), 
                         
+                        # Caja que recoge el valor del error cuadrático medio.  
                         valueBoxOutput(width = 3, outputId = "MSECaretID") 
                         
                     ),
                     
                     br(),
                     
+                    # Gráfica que enseña la serie temporal de valores reales frente a las predicciones. 
                     fluidRow(column(12, plotOutput(outputId = "predictionsPlotCaretID")))
                     
                     
@@ -345,6 +349,7 @@ ui <- dashboardPage(
                         
                     ),
                     
+                    # Se muestra un resumen del modelo LSTM obtenido por Keras. 
                     fluidRow(column(12, verbatimTextOutput("modelKerasSummary")))
                     
             ),
@@ -371,19 +376,23 @@ ui <- dashboardPage(
                     
                     fluidRow(
                         
-                        
+                        # Caja que recoge el valor del coeficiente de determinación.
                         valueBoxOutput(width = 3, outputId = "R2KerasID"), 
                         
+                        # Caja que recoge el valor del coeficiente de determinación con factor de corrección.
                         valueBoxOutput(width = 3, outputId = "BR2KerasID"),
                         
+                        # Caja que recoge el valor del error absoluto medio.
                         valueBoxOutput(width = 3, outputId = "MAEKerasID"), 
                         
+                        # Caja que recoge el valor del error cuadrático medio.
                         valueBoxOutput(width = 3, outputId = "MSEKerasID") 
                         
                     ),
                     
                     br(),
                     
+                    # Serie temporal de los valores reales enfrentados a las predicciones dadas por las LSTM. 
                     fluidRow(column(12, plotOutput(outputId = "predictionsPlotKerasID")))
                     
             )

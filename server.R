@@ -11,10 +11,13 @@ server <- function(input, output, session) {
             filter(symbol %in% input$cryptocoin) %>%
             filter(date > input$FromDateTime & date < input$TillDateTime) 
         
+        # Condición para evitar que el usuario elija intervalos de tiempo superiores a las seis horas. 
         if (abs(as.numeric(as.POSIXct(input$FromDateTime) - as.POSIXct(input$TillDateTime))) > 6L |
             abs(as.numeric(as.Date(input$FromDateTime) - as.Date(input$TillDateTime))) >= 1L){
             
+            # Alerta de shiny que le indica al usuario la restricción del intervalo temporal. 
             shinyalert("Advertencia", "¡Se han de seleccionar intervalos inferiores a seis horas!", type = "warning")
+            # Se vacía el marco de datos para evitar que el usuario colapse la aplicación. 
             newCrypto <- newCrypto[0,]
             return(newCrypto)
             
@@ -33,6 +36,7 @@ server <- function(input, output, session) {
     # Se guarda en la variable de valores reactivos el marco resultante de los filtros. 
     observe({cryptoDF$data <- cryptoReactive()})
     
+    # Valor reactivo que sirva de bandera para la estandarización. Se inicializa como falso. 
     dataScaled <- reactiveVal(FALSE)
     
     # Evento de estandarizado. 
@@ -40,9 +44,11 @@ server <- function(input, output, session) {
         
         if(dataScaled() == FALSE){
             
+            # Estandarización del marco de datos. 
             cryptoDF$data <- cryptoDF$data %>% dplyr::mutate_at(c("open", "high", "low", "close",
                                                                   "tradecount", "volume", "USDT"), scale)
             
+            # Cambio de valor en la variable bandera. 
             dataScaled(TRUE)
         }
         
@@ -53,9 +59,11 @@ server <- function(input, output, session) {
         
         if(dataScaled() == TRUE){
             
+            # Reescalado del marco de datos. 
             cryptoDF$data <- cryptoDF$data %>% dplyr::mutate_at(c("open", "high", "low", "close",
                                                                   "tradecount", "volume", "USDT"), unscale)
             
+            # Cambio de valor en la variable bandera. 
             dataScaled(FALSE)
             
         }
@@ -84,7 +92,7 @@ server <- function(input, output, session) {
     # ----- Renderización de la tabla sobre criptomonedas ----- 
     output$dataframeID <- DT::renderDataTable({
         
-        # Pasar a formato de data.table
+        # Pasar a formato de data.table. Este paso no es necesario. 
         cryptotable() %>% data.table()
         
         
@@ -123,7 +131,7 @@ server <- function(input, output, session) {
     
     
     
-    # Guardado del marco de datos
+    # Acción de guardado del marco de datos.
     output$downloadDF <- downloadHandler(
         
         filename = function(){
@@ -135,7 +143,7 @@ server <- function(input, output, session) {
         
         content = function(file) {
             
-            # Guardar el archivo como xlsx. 
+            # Guardar el archivo como xlsx. Se pueden añadir más formatos.  
             write.xlsx(cryptoDF$data, file, row.names = FALSE)
             
         }
@@ -146,13 +154,16 @@ server <- function(input, output, session) {
         
         statsDF <- cryptoDF$data
         
+        # Obtención del resumen estadístico y pivotaje de la tabla para mejorar la presentación. 
         statsDF <- statsDF %>% dplyr::select(-c(date, symbol)) %>% describe() %>%
             rownames_to_column(var = "variable") %>% dplyr::select(-c(vars, n)) %>%
-            pivot_longer(-variable) %>% pivot_wider(names_from=variable, values_from=value)
+            pivot_longer(-variable) %>% pivot_wider(names_from = variable, values_from = value)
         
+        # Cambio de los nombres de las variables a castellano. 
         colnames(statsDF) <- c(" ", "Apertura", "Máximo", "Mínimo", "Cierre",
                                "Volumen", "USDT", "Transacciones")
         
+        # Se redondean los resultados para mejorar la claridad de la presentación. 
         statsDF %>% mutate_if(is.numeric, round, 3)
         
     }, rownames = FALSE,
@@ -172,7 +183,7 @@ server <- function(input, output, session) {
     
     output$SkimF <-  metaRender(renderPrint, ({
         
-        # cryptoDF$data %>% group_by(symbol) %>% skim_without_charts()
+        # Resumen skim del marco de datos sin histogramas (en ocasiones hay glitches y los muestra igual). 
         cryptoDF$data  %>% skim_without_charts()
         
     }))
@@ -231,6 +242,7 @@ server <- function(input, output, session) {
         # La sintaxis de boxplot exige que sea un dataframe, no otro objeto. 
         detectionDF <- cryptoDF$data %>% as.data.frame()
         
+        # Obtención de los valores de los índices donde se hallan valores atípicos. 
         index <- boxplot(detectionDF[, input$selectVarOutlier], plot = FALSE)$out
         
         return(index)
@@ -242,8 +254,10 @@ server <- function(input, output, session) {
         # La función which también solicita que se le pase un dataframe. 
         outliersDF <- cryptoDF$data %>% as.data.frame()
         
+        # Obtención del subconjunto donde se encuentran valores atípicos.  
         outliersDF <- outliersDF[which(outliersDF[, input$selectVarOutlier] %in% outlierDetection()),]
         
+        # Cambio del nombre de las variables a castellano para mejorar la presentación. 
         colnames(outliersDF) <- c("Fecha", "Cripto", "Apertura",
                                   "Máximo", "Mínimo", "Cierre",
                                   "Volumen", "USDT", "Transacciones")
@@ -277,7 +291,7 @@ server <- function(input, output, session) {
     
     
     
-    # Guardado del marco de datos de los valores atípicos. 
+    # Acción de guardado del marco de datos de los valores atípicos. 
     output$downloadOutlierDF <- downloadHandler(
         
         filename = function(){
@@ -381,11 +395,12 @@ server <- function(input, output, session) {
     # Variable reactiva con la matriz de correlaciones. 
     corrDFR <- reactive({
         
+        # Se extrae un marco de datos con información estadística de la matriz de correlaciones. 
         corrDF <- grouped_ggcorrmat(
             data = cryptoDF$data, 
             grouping.var = symbol,
             type = "robust",
-            # digits = 4, No lo permite con Shiny. Es un glitch rarillo... 
+            # digits = 4, No se ve redondeado en la aplicación Shiny. Es un glitch rarillo... 
             output = "dataframe")
         
         return(corrDF)
@@ -397,6 +412,7 @@ server <- function(input, output, session) {
         
         corrDF <- corrDFR()
         
+        # Se redondean todos los valores para mejorar la claridad de la exposición. 
         corrDF %>% mutate_if(is.numeric, round, 4)
         
     }, rownames = FALSE, options = list(initComplete = JS("function(settings, json) {", 
@@ -441,6 +457,7 @@ server <- function(input, output, session) {
     # Salida de los diagramas de correlaciones. 
     output$corrPlotID <- renderPlot({
         
+        # Se aplica una separación en base a la criptodivisa. 
         grouped_ggcorrmat(
             data = cryptoDF$data,
             type = "robust", 
@@ -459,7 +476,7 @@ server <- function(input, output, session) {
     }, height = 850)
     
     
-    # Creación de un marco de datos que añada las variables de bitcoin y bitcoin con retraso. 
+    # Creación de un marco de datos que añada las variables de bitcoin y bitcoin con salto temporal de menos treinta minutos. 
     kryptoBTC <- reactive({
         
         bitcoinLag30 <- lag(bitcoin, 30)
@@ -481,6 +498,7 @@ server <- function(input, output, session) {
         
         kryptoBTCRenamed <- kryptoBTC()
         
+        # Se castellaniza el nombre de las variables para mejorar la calidad de la presentación. 
         colnames(kryptoBTCRenamed) <- c("Fecha", "Cripto", "Apertura",
                                         "Máximo", "Mínimo", "Cierre",
                                         "Volumen", "USDT", "Transacciones",
@@ -498,7 +516,8 @@ server <- function(input, output, session) {
     
     
     # Variables reactivas con los valores de la estandarización. 
-    # Hacer scale sobre  y quedarse con:
+    # Servirán al propósito de reescalar las predicciones de los LSTM. 
+    # Variable reactiva que toma el atributo centro de la estandarización. 
     centerSt <- reactive({
         
         if(dataScaled() == FALSE){
@@ -518,6 +537,7 @@ server <- function(input, output, session) {
         
     })
     
+    # Variable reactiva que extrae el atributo escala de la estandarización.
     scaleSt <- reactive({
         
         if(dataScaled() == FALSE){
@@ -537,9 +557,6 @@ server <- function(input, output, session) {
         
     })
     
-    # Variable reactiva con el marco de datos para efectuar predicciones. 
-    # Se crea esta nueva variable para jugar con la estandarización sin que afecte a otros componentes de la aplicación. 
-    
     # Función para reescalar el marco de datos.  
     unscale2 <- function(x){
         
@@ -547,7 +564,9 @@ server <- function(input, output, session) {
         
     }
     
+    
     # Variable reactiva sobre la que se efectúan las predicciones en base al modelo seleccionado. 
+    # Se crea esta nueva variable para jugar con la estandarización sin que afecte a otros componentes de la aplicación. 
     predictionDF <- reactive({
         
         if(dataScaled() == TRUE){
@@ -569,17 +588,17 @@ server <- function(input, output, session) {
     })
     
     
-    # En esta sección se utilizará kryptoBTC
-    # Carga del modelo seleccionado.
+    # Carga del modelo de regresión seleccionado.
     modelCaret <- reactive({
         
+        # Se utiliza la función de carga de modelos con extensión rds. 
         model <- readRDS(input$selectionCaret)
         
         return(model)
         
     })
     
-    # Resumen del modelo cargado. 
+    # Resumen del modelo de regresión cargado. 
     output$modelSummary <- renderPrint({
         
         summary(modelCaret())
@@ -626,6 +645,8 @@ server <- function(input, output, session) {
         
         kryptoCaret <- predictionDF() 
         
+        # Se seleccionan las variables de la fecha, la criptodivisa y el valor de cierre.
+        # Además, se crea una variable de predicciones inicializada en un vector de ceros. 
         kryptoCaret <- kryptoCaret %>% dplyr::select(date, symbol, close) %>% add_column(predictions = 0)
         
         return(kryptoCaret)
@@ -729,6 +750,7 @@ server <- function(input, output, session) {
     # Cargar el modelo seleccionado que ha sido creado con Keras
     modelKeras <- reactive({
         
+        # Se utiliza la función de carga de keras de modelos con extensión h5. 
         modelKeras <- load_model_hdf5(input$selectionKeras)
         
     }) 
@@ -779,6 +801,8 @@ server <- function(input, output, session) {
         
         kryptoKeras <- kryptoBTC() 
         
+        # Se seleccionan las variables de la fecha, la criptodivisa y el valor de cierre.
+        # También se crea una variable de predicciones inicializada en un vector de ceros.
         kryptoKeras <- kryptoKeras %>% dplyr::select(date, symbol, close) %>% add_column(predictions = 0)
         
         return(kryptoKeras)
@@ -851,7 +875,8 @@ server <- function(input, output, session) {
     })
     
     # Variables reactivas que sirven de entrada para los modelos. 
-    # Se ha de transformar el marco de entrada en un array. Además, se ha de ejecutar la estandarización. 
+    # Se ha de transformar el marco de entrada en un array. 
+    # Antes de la creación del array se de ha de ejecutar la estandarización. 
     arrayX1 <- reactive({
         
         test  <- predictionDF()
@@ -868,7 +893,8 @@ server <- function(input, output, session) {
         
     })
     
-    
+    # Hay modelos que toman las variables alto y bajo en lugar del volumen y las transacciones. 
+    # Esto exige la creación de otra variable reactiva que devuelva una estructura de array apropiada. 
     arrayX2 <- reactive({
         
         test  <- predictionDF()
